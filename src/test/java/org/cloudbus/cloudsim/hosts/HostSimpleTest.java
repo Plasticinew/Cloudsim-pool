@@ -16,6 +16,7 @@ import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.mocks.CloudSimMocker;
 import org.cloudbus.cloudsim.mocks.MocksHelper;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
 import org.cloudbus.cloudsim.resources.*;
 import org.cloudbus.cloudsim.schedulers.MipsShare;
@@ -81,10 +82,13 @@ public class HostSimpleTest {
         final long bw, final long storage, final boolean activate)
     {
         final List<Pe> peList = createPes(numberOfPes, mips);
+        
+        List<ResourceProvisioner> provisioner = new ArrayList<>();
+        provisioner.add(new ResourceProvisionerSimple());
 
         final HostSimple host = new HostSimple(ram, bw, storage, peList, activate);
         host.setRamProvisioner(new ResourceProvisionerSimple())
-            .setBwProvisioner(new ResourceProvisionerSimple())
+            .setBwProvisioner(provisioner)
             .setVmScheduler(new VmSchedulerTimeShared())
             .setId(hostId);
         return host;
@@ -93,9 +97,12 @@ public class HostSimpleTest {
     private static HostSimple createHostSimple(final int numberOfPes, VmScheduler vmScheduler) {
         final List<Pe> peList = createPes(numberOfPes, MIPS);
 
+        List<ResourceProvisioner> provisioner = new ArrayList<>();
+        provisioner.add(new ResourceProvisionerSimple());
+
         final HostSimple host = new HostSimple(RAM, BW, STORAGE, peList);
         host.setRamProvisioner(new ResourceProvisionerSimple())
-            .setBwProvisioner(new ResourceProvisionerSimple())
+            .setBwProvisioner(provisioner)
             .setVmScheduler(vmScheduler);
         return host;
 

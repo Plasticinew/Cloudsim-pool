@@ -6,29 +6,48 @@
  */
 package org.cloudbus.cloudsim.hosts;
 
-import org.cloudbus.cloudsim.core.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import static java.util.Objects.requireNonNull;
+import java.util.Set;
+import java.util.function.Predicate;
+import static java.util.stream.Collectors.toList;
+
+import org.cloudbus.cloudsim.core.AbstractMachine;
+import org.cloudbus.cloudsim.core.ChangeableId;
+import org.cloudbus.cloudsim.core.CloudSimTag;
+import org.cloudbus.cloudsim.core.ResourceStatsComputer;
+import org.cloudbus.cloudsim.core.Simulation;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.power.models.PowerModelHost;
 import org.cloudbus.cloudsim.provisioners.PeProvisioner;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
-import org.cloudbus.cloudsim.resources.*;
+import org.cloudbus.cloudsim.resources.Bandwidth;
+import org.cloudbus.cloudsim.resources.FileStorage;
+import org.cloudbus.cloudsim.resources.HarddriveStorage;
+import org.cloudbus.cloudsim.resources.Pe;
+import org.cloudbus.cloudsim.resources.Ram;
+import org.cloudbus.cloudsim.resources.Resource;
+import org.cloudbus.cloudsim.resources.ResourceManageable;
 import org.cloudbus.cloudsim.schedulers.MipsShare;
 import org.cloudbus.cloudsim.schedulers.vm.VmScheduler;
 import org.cloudbus.cloudsim.schedulers.vm.VmSchedulerSpaceShared;
 import org.cloudbus.cloudsim.util.BytesConversion;
 import org.cloudbus.cloudsim.util.TimeUtil;
-import org.cloudbus.cloudsim.vms.*;
+import org.cloudbus.cloudsim.vms.HostResourceStats;
+import org.cloudbus.cloudsim.vms.Vm;
+import org.cloudbus.cloudsim.vms.VmGroup;
+import org.cloudbus.cloudsim.vms.VmSimple;
+import org.cloudbus.cloudsim.vms.VmStateHistoryEntry;
 import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.listeners.HostEventInfo;
 import org.cloudsimplus.listeners.HostUpdatesVmsProcessingEventInfo;
-
-import java.util.*;
-import java.util.function.Predicate;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 /**
  * A Host class that implements the most basic features of a Physical Machine
@@ -98,7 +117,7 @@ public class HostSimple implements Host {
     private ResourceProvisioner ramProvisioner;
 
     /** @see #getBwProvisioner() */
-    private ResourceProvisioner bwProvisioner;
+    private List<ResourceProvisioner> bwProvisioner;
 
     /** @see #getVmScheduler() */
     private VmScheduler vmScheduler;
@@ -210,11 +229,11 @@ public class HostSimple implements Host {
      */
     public HostSimple(
         final ResourceProvisioner ramProvisioner,
-        final ResourceProvisioner bwProvisioner,
+        final List<ResourceProvisioner> bwProvisioner,
         final long storage,
         final List<Pe> peList)
     {
-        this(ramProvisioner.getCapacity(), bwProvisioner.getCapacity(), storage, peList);
+        this(ramProvisioner.getCapacity(), bwProvisioner.get(0).getCapacity(), storage, peList);
         setRamProvisioner(ramProvisioner);
         setBwProvisioner(bwProvisioner);
         setPeList(peList);
@@ -280,12 +299,15 @@ public class HostSimple implements Host {
         this.setSimulation(Simulation.NULL);
         this.idleShutdownDeadline = DEF_IDLE_SHUTDOWN_DEADLINE;
         this.lazySuitabilityEvaluation = true;
+        
+        List<ResourceProvisioner> provisioner = new ArrayList<>();
+        provisioner.add(new ResourceProvisionerSimple());
 
         this.ram = new Ram(ram);
         this.bw = new Bandwidth(bw);
         this.disk = requireNonNull(storage);
         this.setRamProvisioner(new ResourceProvisionerSimple());
-        this.setBwProvisioner(new ResourceProvisionerSimple());
+        this.setBwProvisioner(provisioner);
 
         this.setVmScheduler(new VmSchedulerSpaceShared());
         this.setPeList(peList);
@@ -451,7 +473,7 @@ public class HostSimple implements Host {
 
     private void allocateResourcesForVm(final Vm vm) {
         ramProvisioner.allocateResourceForVm(vm, vm.getCurrentRequestedRam());
-        bwProvisioner.allocateResourceForVm(vm, vm.getCurrentRequestedBw());
+        bwProvisioner.get(vm.getNicId()).allocateResourceForVm(vm, vm.getCurrentRequestedBw());
         disk.getStorage().allocateResource(vm.getStorage());
         vmScheduler.allocatePesForVm(vm, vm.getCurrentRequestedMips());
     }
@@ -521,7 +543,20 @@ public class HostSimple implements Host {
                 return suitability;
         }
 
-        suitability.setForBw(bwProvisioner.isSuitableForVm(vm, vm.getBw()));
+        var suit = bwProvisioner.get(vm.getNicId()).isSuitableForVm(vm, vm.getBw());
+        if(!suit){
+            long min = bwProvisioner.get(vm.getNicId()).getCapacity();
+            for(int i = 0; i < bwProvisioner.size(); i++) {
+                var suit_temple = bwProvisioner.get(i).isSuitableForVm(vm, vm.getBw());
+                if(suit_temple) {
+                    if(min >= bwProvisioner.get(i).getAvailableResource()){
+                        vm.setNicId(i);
+                        suit = true;
+                    }
+                }
+            }
+        }
+        suitability.setForBw(suit);
         if (!suitability.forBw()) {
             logAllocationError(showFailureLog, vm, inMigration, "Mbps", this.getBw(), vm.getBw());
             if(lazySuitabilityEvaluation)
@@ -672,7 +707,7 @@ public class HostSimple implements Host {
     protected void deallocateResourcesOfVm(final Vm vm) {
         vm.setCreated(false);
         ramProvisioner.deallocateResourceForVm(vm);
-        bwProvisioner.deallocateResourceForVm(vm);
+        bwProvisioner.get(vm.getNicId()).deallocateResourceForVm(vm);
         vmScheduler.deallocatePesFromVm(vm);
         disk.getStorage().deallocateResource(vm.getStorage());
     }
@@ -682,7 +717,7 @@ public class HostSimple implements Host {
         final PeProvisioner peProvisioner = getPeList().get(0).getPeProvisioner();
         for (final Vm vm : vmList) {
             ramProvisioner.deallocateResourceForVm(vm);
-            bwProvisioner.deallocateResourceForVm(vm);
+            bwProvisioner.get(vm.getNicId()).deallocateResourceForVm(vm);
             peProvisioner.deallocateResourceForVm(vm);
             vm.setCreated(false);
             disk.getStorage().deallocateResource(vm.getStorage());
@@ -772,8 +807,18 @@ public class HostSimple implements Host {
     }
 
     @Override
+    public Resource getBw(int nId) {
+        return bwProvisioner.get(nId).getPmResource();
+    }
+
+    @Override
     public Resource getBw() {
-        return bwProvisioner.getPmResource();
+        return bwProvisioner.get(0).getPmResource();
+    }
+
+    @Override
+    public int getNicId() {
+        return 0;
     }
 
     @Override
@@ -817,15 +862,16 @@ public class HostSimple implements Host {
     }
 
     @Override
-    public ResourceProvisioner getBwProvisioner() {
-        return bwProvisioner;
+    public ResourceProvisioner getBwProvisioner(int nId) {
+        return bwProvisioner.get(nId);
     }
 
     @Override
-    public final Host setBwProvisioner(final ResourceProvisioner bwProvisioner) {
+    public final Host setBwProvisioner(final List<ResourceProvisioner> bwProvisioner) {
         checkSimulationIsRunningAndAttemptedToChangeHost("BW");
         this.bwProvisioner = requireNonNull(bwProvisioner);
-        this.bwProvisioner.setResources(bw, vm -> ((VmSimple)vm).getBw());
+        this.bwProvisioner.forEach(p -> p.setResources(bw, vm -> ((VmSimple)vm).getBw()));
+
         return this;
     }
 
@@ -1232,9 +1278,10 @@ public class HostSimple implements Host {
     @Override
     public ResourceProvisioner getProvisioner(final Class<? extends ResourceManageable> resourceClass) {
         if(simulation.isRunning() && provisioners.isEmpty()){
-            provisioners = Arrays.asList(ramProvisioner, bwProvisioner);
+            provisioners = Arrays.asList(ramProvisioner);
+            provisioners.addAll(bwProvisioner);
         }
-
+        System.out.printf("used!\n");
         return provisioners
             .stream()
             .filter(provisioner -> provisioner.getPmResource().isSubClassOf(resourceClass))
@@ -1297,7 +1344,7 @@ public class HostSimple implements Host {
 
     @Override
     public long getBwUtilization() {
-        return bwProvisioner.getTotalAllocatedResource();
+        return bwProvisioner.stream().mapToLong(ResourceProvisioner::getTotalAllocatedResource).sum();
     }
 
     @Override

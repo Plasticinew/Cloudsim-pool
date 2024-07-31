@@ -68,13 +68,19 @@ final class HostNull implements Host {
         return 0;
     }
     @Override public double getTotalAllocatedMips() { return 0; }
+    @Override public Resource getBw(int nId) {
+        return Resource.NULL;
+    }
     @Override public Resource getBw() {
         return Resource.NULL;
     }
-    @Override public ResourceProvisioner getBwProvisioner() {
+    @Override public int getNicId() {
+        return 0;
+    }
+    @Override public ResourceProvisioner getBwProvisioner(int nId) {
         return ResourceProvisioner.NULL;
     }
-    @Override public Host setBwProvisioner(ResourceProvisioner bwProvisioner) {
+    @Override public Host setBwProvisioner(List<ResourceProvisioner> bwProvisioner) {
         return Host.NULL;
     }
     @Override public Datacenter getDatacenter() {

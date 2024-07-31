@@ -23,7 +23,7 @@ public class HostTest {
             () -> assertEquals(0, instance.getTotalAvailableMips()),
             () -> assertEquals(0, instance.getAvailableStorage()),
             () -> assertEquals(0, instance.getBw().getCapacity()),
-            () -> assertEquals(ResourceProvisioner.NULL, instance.getBwProvisioner()),
+            () -> assertEquals(ResourceProvisioner.NULL, instance.getBwProvisioner(1)),
             () -> assertEquals(0, instance.getFreePesNumber()),
             () -> assertEquals(0, instance.getNumberOfPes()),
             () -> assertEquals(0, instance.getRam().getCapacity()),

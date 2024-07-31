@@ -9,6 +9,8 @@ import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.hosts.HostSimple;
 import org.cloudbus.cloudsim.power.models.PowerModelHostSimple;
+import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
+import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
 import org.cloudbus.cloudsim.resources.Bandwidth;
 import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.resources.PeSimple;
@@ -31,6 +33,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.OptionalDouble;
+
+import javax.management.AttributeList;
 
 /**
  * Simulation of Azure VM traces using CloudSim Plus.
@@ -63,6 +67,9 @@ public class AzureVmTraceExample {
     private static final int MAX_POWER = 50;
     // Just comma (,) symbol
     private static final String COMMA_DELIMITER = ",";
+
+    private static final int HOST_PER_RACK = 32;
+    private static final int DPU_PER_RACK = 16;
 
     public static void main(String[] args) throws Exception {
         new AzureVmTraceExample(args[0], args[1], Double.parseDouble(args[2]), Integer.parseInt(args[3]));
@@ -135,8 +142,8 @@ public class AzureVmTraceExample {
         var timeElapsed = timeFinish - timeStart;
         System.out.println("Elapsed time is " + timeElapsed / 1000.0 + " seconds");
         printHostCpuUtilizationAndPowerConsumption(hosts);
-        final var cloudletFinishedList = broker.getCloudletFinishedList();
-        new CloudletsTableBuilder(cloudletFinishedList).build();
+        // final var cloudletFinishedList = broker.getCloudletFinishedList();
+        // new CloudletsTableBuilder(cloudletFinishedList).build();
     }
 
     // CloudSim --------------------------------------------------------------------------------------------------------
@@ -144,37 +151,56 @@ public class AzureVmTraceExample {
     private List<Host> createHosts(int host_count) {
         final List<Host> hostList = new ArrayList<>(host_count);
         for(int i = 0; i < host_count; i++) {
-            final var host = createPowerHost(i);
-            hostList.add(host);
+            final var host = createRack(i*HOST_PER_RACK);
+            hostList.addAll(host);
         }
         return hostList;
     }
 
-    private Host createPowerHost(final int id) {
-        final var peList = new ArrayList<Pe>(HOST_PES);
-        //List of Host's CPUs (Processing Elements, PEs)
-        for (int i = 0; i < HOST_PES; i++) {
-            peList.add(new PeSimple(PE_MIPS));
+    private List<Host> createRack(final int id) {
+        final List<Host> RackHosts = new ArrayList<>(HOST_PER_RACK);
+        
+        final List<ResourceProvisioner> bwProvisioner_ = new ArrayList<>(DPU_PER_RACK);
+        final var bw_ = new Bandwidth(HOST_BW * 1024); //in Megabits/s
+        for(int i = 0; i < DPU_PER_RACK; i++) {
+            var bwp = new ResourceProvisionerSimple();
+            bwp.setResources(bw_, vm -> ((VmSimple)vm).getBw());
+            bwProvisioner_.add(bwp);
         }
 
-        final long ram = HOST_MEMORY * 1024; //in Megabytes
-        final long bw = HOST_BW * 1024; //in Megabits/s
-        final long storage = 1000000; //in Megabytes
-        final var vmScheduler = new VmSchedulerSpaceShared();
+        for(int i = 0; i < HOST_PER_RACK; i++) {
+            
+            // final List<ResourceProvisioner> bwProvisioner_ = new ArrayList<>();
+            // final var bw_ = new Bandwidth(HOST_BW * 1024); //in Megabits/s
+            // var bwp = new ResourceProvisionerSimple();
+            // bwp.setResources(bw_, vm -> ((VmSimple)vm).getBw());
+            // bwProvisioner_.add(bwp);
 
-        final var host = new HostSimple(ram, bw, storage, peList);
+            final var peList = new ArrayList<Pe>(HOST_PES);
+            //List of Host's CPUs (Processing Elements, PEs)
+            for (int j = 0; j < HOST_PES; j++) {
+                peList.add(new PeSimple(PE_MIPS));
+            }
+            ResourceProvisioner ramProvisioner_ = new ResourceProvisionerSimple();
+            final var ram_ = new Ram(HOST_MEMORY * 1024); //in Megabytes
+            ramProvisioner_.setResources(ram_, vm -> ((VmSimple)vm).getRam());
+            final long storage = 1000000; //in Megabytes
+            final var vmScheduler = new VmSchedulerSpaceShared();
 
-        final var powerModel = new PowerModelHostSimple(MAX_POWER, STATIC_POWER);
-        powerModel.setStartupDelay(HOST_START_UP_DELAY)
-                  .setShutDownDelay(HOST_SHUT_DOWN_DELAY)
-                  .setStartupPower(HOST_START_UP_POWER)
-                  .setShutDownPower(HOST_SHUT_DOWN_POWER);
+            final var host = new HostSimple(ramProvisioner_, bwProvisioner_, storage, peList);
 
-        host.setVmScheduler(vmScheduler).setPowerModel(powerModel);
-        host.setId(id);
-        host.enableUtilizationStats();
+            final var powerModel = new PowerModelHostSimple(MAX_POWER, STATIC_POWER);
+            powerModel.setStartupDelay(HOST_START_UP_DELAY)
+                    .setShutDownDelay(HOST_SHUT_DOWN_DELAY)
+                    .setStartupPower(HOST_START_UP_POWER)
+                    .setShutDownPower(HOST_SHUT_DOWN_POWER);
 
-        return host;
+            host.setVmScheduler(vmScheduler).setPowerModel(powerModel);
+            host.setId(id+i);
+            host.enableUtilizationStats();
+            RackHosts.add(host);
+        }
+        return RackHosts;
     }
 
     private Cloudlet createCloudlet(final int id, final Vm vm, final int vmPes, final double duration) {
@@ -200,8 +226,11 @@ public class AzureVmTraceExample {
             // The total Host's CPU utilization for the time specified by the map key
             final double utilizationPercentMean = cpuStats.getMean();
             accumulatedCPUUtilization += utilizationPercentMean * 100;
-            accumulatedBWUtilization += nicUilization / (HOST_BW*1024.0) * 100.0 ;
+            accumulatedBWUtilization += nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 ;
+            System.out.printf("%.1f%% ", 
+                nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 );    
         }
+        System.out.println();
         System.out.printf("Mean host CPU utilization is %.1f%%", 
             accumulatedCPUUtilization / hosts.size());
         System.out.println();

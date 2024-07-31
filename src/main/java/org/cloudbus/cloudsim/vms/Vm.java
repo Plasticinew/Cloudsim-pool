@@ -288,6 +288,8 @@ public interface Vm extends AbstractMachine<Resource>, UniquelyIdentifiable, Com
     @Override
     Resource getBw();
 
+    @Override
+    int getNicId();
     /**
      * Gets the RAM resource assigned to the Vm,
      * allowing to check its capacity (in Megabytes) and usage.
@@ -488,6 +490,8 @@ public interface Vm extends AbstractMachine<Resource>, UniquelyIdentifiable, Com
      * @return
      */
     Vm setBw(long bwCapacity);
+
+    Vm setNicId(int nicId);
 
     /**
      * Sets the PM that hosts the VM.

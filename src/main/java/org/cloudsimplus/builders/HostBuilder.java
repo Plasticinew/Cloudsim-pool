@@ -25,6 +25,7 @@ package org.cloudsimplus.builders;
 
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.hosts.HostSimple;
+import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
 import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.schedulers.vm.VmScheduler;
@@ -102,9 +103,11 @@ public class HostBuilder implements Builder {
     }
 
     private Host defaultHostCreationFunction(final List<Pe> peList) {
+        List<ResourceProvisioner> provisioner = new ArrayList<>();
+        provisioner.add(new ResourceProvisionerSimple());
         return new HostSimple(peList)
             .setRamProvisioner(new ResourceProvisionerSimple())
-            .setBwProvisioner(new ResourceProvisionerSimple())
+            .setBwProvisioner(provisioner)
             .addOnUpdateProcessingListener(onUpdateVmsProcessingListener);
     }
 

@@ -38,11 +38,17 @@ import java.util.List;
  * @since CloudSim 1.2.0
  */
 final class AbstractMachineNull implements AbstractMachine {
+    @Override public Resource getBw(int nId) {
+        return Resource.NULL;
+    }
     @Override public Resource getBw() {
         return Resource.NULL;
     }
     @Override public Resource getRam() {
         return Resource.NULL;
+    }
+    @Override public int getNicId() {
+        return 0;
     }
     @Override public Resource getStorage() {
         return Resource.NULL;

@@ -64,6 +64,15 @@ class VmNull implements Vm {
     @Override public Resource getBw() {
         return Resource.NULL;
     }
+    @Override public Resource getBw(int nId) {
+        return Resource.NULL;
+    }
+    @Override public int getNicId() {
+        return 0;
+    }
+    @Override public Vm setNicId(int nId) {
+        return this;
+    }
     @Override public CloudletScheduler getCloudletScheduler() { return CloudletScheduler.NULL; }
     @Override public long getFreePesNumber() { return 0; }
     @Override public long getExpectedFreePesNumber() { return 0; }

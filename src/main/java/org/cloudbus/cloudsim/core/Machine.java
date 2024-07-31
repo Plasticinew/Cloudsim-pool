@@ -86,6 +86,6 @@ public interface Machine extends AbstractMachine<FileStorage> {
      * @return the relative VM BW usage percent (from 0 to 1)
      */
     default double getRelativeBwUtilization(final Vm vm){
-        return vm.getBw().getAllocatedResource() / (double)getBw().getCapacity();
+        return vm.getBw().getAllocatedResource() / (double)getBw(vm.getNicId()).getCapacity();
     }
 }

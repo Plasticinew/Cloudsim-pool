@@ -83,6 +83,7 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
 
     /** @see #getBw() */
     private Bandwidth bw;
+    private int nicId = 0;
 
     /** @see #getFreePesNumber() */
     private long freePesNumber;
@@ -562,6 +563,15 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
         return bw;
     }
 
+    @Override
+    public ResourceManageable getBw(int nId) {
+        return bw;
+    }
+
+    @Override
+    public int getNicId() {
+        return nicId;
+    }
     /**
      * Sets a new {@link Bandwidth} resource for the Vm.
      *
@@ -577,6 +587,15 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
             throw new UnsupportedOperationException("Bandwidth capacity can just be changed when the Vm was not created inside a Host yet.");
         }
         setBw(new Bandwidth(bwCapacity));
+        return this;
+    }
+
+    @Override
+    public final Vm setNicId(final int nicId) {
+        if (this.isCreated()) {
+            throw new UnsupportedOperationException("Bandwidth capacity can just be changed when the Vm was not created inside a Host yet.");
+        }
+        this.nicId = nicId;   
         return this;
     }
 

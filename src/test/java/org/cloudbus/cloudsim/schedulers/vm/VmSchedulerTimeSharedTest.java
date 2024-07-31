@@ -10,6 +10,7 @@ package org.cloudbus.cloudsim.schedulers.vm;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.hosts.HostSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
 import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.resources.PeSimple;
@@ -41,9 +42,13 @@ public class VmSchedulerTimeSharedTest {
         final List<Pe> peList = new ArrayList<>(pesNumber);
         LongStream.range(0, pesNumber).forEach(i -> peList.add(new PeSimple(mips, new PeProvisionerSimple())));
         final Host host = new HostSimple(2048, 20000, 20000, peList);
+        
+        List<ResourceProvisioner> provisioner = new ArrayList<>();
+        provisioner.add(new ResourceProvisionerSimple());
+        
         host
             .setRamProvisioner(new ResourceProvisionerSimple())
-            .setBwProvisioner(new ResourceProvisionerSimple())
+            .setBwProvisioner(provisioner)
             .setVmScheduler(scheduler)
             .setId(0);
         return scheduler;

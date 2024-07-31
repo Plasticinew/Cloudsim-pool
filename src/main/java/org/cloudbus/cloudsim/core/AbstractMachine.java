@@ -49,7 +49,11 @@ public interface AbstractMachine<T extends Resource> extends ChangeableId, Resou
      *
      * @return the machine bw resource
      */
+    Resource getBw(int nId);
+
     Resource getBw();
+
+    int getNicId();
 
     /**
      * Gets a resource representing the machine memory in Megabytes.

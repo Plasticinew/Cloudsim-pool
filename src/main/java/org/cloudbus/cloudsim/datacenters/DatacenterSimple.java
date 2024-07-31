@@ -855,7 +855,7 @@ public class DatacenterSimple extends CloudSimEntity implements Datacenter {
      * @return the time (in seconds) that is expected to migrate the VM
      */
     private double timeToMigrateVm(final Vm vm, final Host targetHost) {
-        return vm.getRam().getCapacity() / bitesToBytes(targetHost.getBw().getCapacity() * getBandwidthPercentForMigration());
+        return vm.getRam().getCapacity() / bitesToBytes(targetHost.getBw(vm.getNicId()).getCapacity() * getBandwidthPercentForMigration());
     }
 
     @Override

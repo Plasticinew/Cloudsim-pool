@@ -314,14 +314,14 @@ public interface Host extends Machine, Comparable<Host>, PowerAware<PowerModelHo
      *
      * @return the bw provisioner
      */
-    ResourceProvisioner getBwProvisioner();
+    ResourceProvisioner getBwProvisioner(int nId);
 
     /**
      * Sets the bandwidth (BW) provisioner with capacity in Megabits/s.
      *
      * @param bwProvisioner the new bw provisioner
      */
-    Host setBwProvisioner(ResourceProvisioner bwProvisioner);
+    Host setBwProvisioner(List<ResourceProvisioner> bwProvisioner);
 
     /**
      * Gets the ram provisioner with capacity in Megabytes.
