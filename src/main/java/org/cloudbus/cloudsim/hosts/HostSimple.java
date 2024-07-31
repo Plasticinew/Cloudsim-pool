@@ -108,7 +108,7 @@ public class HostSimple implements Host {
     private double idleShutdownDeadline;
 
     private final Ram ram;
-    private final Bandwidth bw;
+    private final List<Bandwidth> bw;
 
     /** @see #getStorage() */
     private final HarddriveStorage disk;
@@ -304,7 +304,8 @@ public class HostSimple implements Host {
         provisioner.add(new ResourceProvisionerSimple());
 
         this.ram = new Ram(ram);
-        this.bw = new Bandwidth(bw);
+        this.bw = new ArrayList<>();
+        this.bw.add(new Bandwidth(bw));
         this.disk = requireNonNull(storage);
         this.setRamProvisioner(new ResourceProvisionerSimple());
         this.setBwProvisioner(provisioner);
@@ -547,6 +548,7 @@ public class HostSimple implements Host {
         if(!suit){
             long min = bwProvisioner.get(vm.getNicId()).getCapacity();
             for(int i = 0; i < bwProvisioner.size(); i++) {
+                // System.out.printf("check nic %d\n", i);
                 var suit_temple = bwProvisioner.get(i).isSuitableForVm(vm, vm.getBw());
                 if(suit_temple) {
                     if(min >= bwProvisioner.get(i).getAvailableResource()){
@@ -870,7 +872,14 @@ public class HostSimple implements Host {
     public final Host setBwProvisioner(final List<ResourceProvisioner> bwProvisioner) {
         checkSimulationIsRunningAndAttemptedToChangeHost("BW");
         this.bwProvisioner = requireNonNull(bwProvisioner);
-        this.bwProvisioner.forEach(p -> p.setResources(bw, vm -> ((VmSimple)vm).getBw()));
+        for(int i = 0; i < bwProvisioner.size()-1; i++) {
+            bw.add(new Bandwidth(bw.get(0).getCapacity()));
+        }
+        for(int i = 0; i < bwProvisioner.size(); i++) {
+            this.bwProvisioner.get(i).setResources(bw.get(i), vm -> ((VmSimple)vm).getBw());
+        }
+        
+        // this.bwProvisioner.forEach(p -> p.setResources(bw.get(), vm -> ((VmSimple)vm).getBw()));
 
         return this;
     }
@@ -1269,7 +1278,8 @@ public class HostSimple implements Host {
     @Override
     public List<ResourceManageable> getResources() {
         if(simulation.isRunning() && resources.isEmpty()){
-            resources = Arrays.asList(ram, bw);
+            resources = Arrays.asList(ram);
+            resources.addAll(bw);
         }
 
         return Collections.unmodifiableList(resources);

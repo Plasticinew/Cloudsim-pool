@@ -1,9 +1,16 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.OptionalDouble;
+
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicyBestFit;
 import org.cloudbus.cloudsim.brokers.DatacenterBroker;
 import org.cloudbus.cloudsim.brokers.DatacenterBrokerBestFit;
-import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.cloudlets.CloudletSimple;
+import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.hosts.Host;
@@ -21,20 +28,9 @@ import org.cloudbus.cloudsim.utilizationmodels.UtilizationModelFull;
 import org.cloudbus.cloudsim.vms.HostResourceStats;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.vms.VmSimple;
-import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
-import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.util.Log;
 
 import ch.qos.logback.classic.Level;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.OptionalDouble;
-
-import javax.management.AttributeList;
 
 /**
  * Simulation of Azure VM traces using CloudSim Plus.
@@ -161,8 +157,8 @@ public class AzureVmTraceExample {
         final List<Host> RackHosts = new ArrayList<>(HOST_PER_RACK);
         
         final List<ResourceProvisioner> bwProvisioner_ = new ArrayList<>(DPU_PER_RACK);
-        final var bw_ = new Bandwidth(HOST_BW * 1024); //in Megabits/s
         for(int i = 0; i < DPU_PER_RACK; i++) {
+            final var bw_ = new Bandwidth(HOST_BW * 1024); //in Megabits/s
             var bwp = new ResourceProvisionerSimple();
             bwp.setResources(bw_, vm -> ((VmSimple)vm).getBw());
             bwProvisioner_.add(bwp);
