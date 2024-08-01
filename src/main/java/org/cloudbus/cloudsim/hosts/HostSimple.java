@@ -849,6 +849,11 @@ public class HostSimple implements Host {
     }
 
     @Override
+    public List<ResourceProvisioner> getBwProvisioner() {
+        return bwProvisioner;
+    }
+
+    @Override
     public final Host setRamProvisioner(final ResourceProvisioner ramProvisioner) {
         checkSimulationIsRunningAndAttemptedToChangeHost("RAM");
         this.ramProvisioner = requireNonNull(ramProvisioner);

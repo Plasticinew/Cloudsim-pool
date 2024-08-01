@@ -7,6 +7,9 @@
  */
 package org.cloudbus.cloudsim.hosts;
 
+import java.util.List;
+import java.util.Set;
+
 import org.cloudbus.cloudsim.core.Machine;
 import org.cloudbus.cloudsim.core.ResourceStatsComputer;
 import org.cloudbus.cloudsim.core.Simulation;
@@ -27,10 +30,6 @@ import org.cloudsimplus.listeners.HostEventInfo;
 import org.cloudsimplus.listeners.HostUpdatesVmsProcessingEventInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Set;
-
 /**
  * An interface to be implemented by each class that provides
  * Physical Machines (Hosts) features.
@@ -315,7 +314,7 @@ public interface Host extends Machine, Comparable<Host>, PowerAware<PowerModelHo
      * @return the bw provisioner
      */
     ResourceProvisioner getBwProvisioner(int nId);
-
+    List<ResourceProvisioner> getBwProvisioner();
     /**
      * Sets the bandwidth (BW) provisioner with capacity in Megabits/s.
      *

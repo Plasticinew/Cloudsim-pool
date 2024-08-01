@@ -23,6 +23,9 @@
  */
 package org.cloudbus.cloudsim.hosts;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+
 import org.cloudbus.cloudsim.core.AbstractMachine;
 import org.cloudbus.cloudsim.core.Simulation;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
@@ -80,6 +83,11 @@ final class HostNull implements Host {
     @Override public ResourceProvisioner getBwProvisioner(int nId) {
         return ResourceProvisioner.NULL;
     }
+    @Override public List<ResourceProvisioner> getBwProvisioner() {
+        List<ResourceProvisioner> nulllist = new ArrayList<>();
+        return nulllist;
+    }
+
     @Override public Host setBwProvisioner(List<ResourceProvisioner> bwProvisioner) {
         return Host.NULL;
     }

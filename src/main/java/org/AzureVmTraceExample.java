@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.awt.geom.Point2D;
 
+import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicyAR2;
+import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicyAR3;
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicyBestFit;
 import org.cloudbus.cloudsim.brokers.DatacenterBroker;
 import org.cloudbus.cloudsim.brokers.DatacenterBrokerBestFit;
@@ -44,9 +47,9 @@ public class AzureVmTraceExample {
     // MIPS performance of PE
     private static final int PE_MIPS = 1000;
     // CPUs per host
-    private static final int HOST_PES = 64;
+    private static final int HOST_PES = 128;
     // Host memory capacity in GB
-    private static final int HOST_MEMORY = 128;
+    private static final int HOST_MEMORY = 256;
     // Host nic bandwidth in Gbps
     private static final int HOST_BW = 100;
     // Indicates the time (in seconds) the Host takes to start up
@@ -67,8 +70,45 @@ public class AzureVmTraceExample {
     private static final int HOST_PER_RACK = 32;
     private static final int DPU_PER_RACK = 16;
 
+    private static final double CPU_WEIGHT = 1;
+    private static final double MEM_WEIGHT = 1;
+    private static final double DPU_WEIGHT = 1;
+
+    HashMap<String, AzureVmType> vmTypes;
+
     public static void main(String[] args) throws Exception {
         new AzureVmTraceExample(args[0], args[1], Double.parseDouble(args[2]), Integer.parseInt(args[3]));
+    }
+
+    public double pointFunctionAR2(Point2D p){
+        double sum_point = 0;
+        for(var type: vmTypes.entrySet()){
+            var point = Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) * type.getValue().cpu;
+            sum_point += point;
+        }
+        // System.out.printf("find result %f\n", sum_point);
+        return sum_point;
+    }
+
+    public double pointFunctionAR3Node(Point2D p){
+        double sum_point = 0;
+        for(var type: vmTypes.entrySet()){
+            var point = Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) 
+                            * (type.getValue().cpu * CPU_WEIGHT + type.getValue().memory * MEM_WEIGHT);
+            sum_point += point;
+        }
+        // System.out.printf("find result %f\n", sum_point);
+        return sum_point;
+    }
+
+    public double pointFunctionAR3DPU(double p){
+        double sum_point = 0;
+        for(var type: vmTypes.entrySet()){
+            var point = (int)(p/type.getValue().bw) * type.getValue().bw * DPU_WEIGHT;
+            sum_point += point;
+        }
+        // System.out.printf("find result %f\n", sum_point);
+        return sum_point;
     }
 
     private AzureVmTraceExample(String vmTypesPath, String vmInstancesPath,
@@ -80,13 +120,18 @@ public class AzureVmTraceExample {
 
         final CloudSim simulation = new CloudSim();
         final var hosts = createHosts(host_count);
-        final Datacenter dc = new DatacenterSimple(simulation, hosts, new VmAllocationPolicyBestFit());
+        // var policy = new VmAllocationPolicyAR2();
+        // policy.setPointFunction(point -> this.pointFunctionAR2(point));
+        var policy = new VmAllocationPolicyAR3();
+        policy.setPointFunction(point -> this.pointFunctionAR3Node(point), dpu -> this.pointFunctionAR3DPU(dpu));
+        final Datacenter dc = new DatacenterSimple(simulation, hosts, policy);
+        // final Datacenter dc = new DatacenterSimple(simulation, hosts, new VmAllocationPolicyBestFit());
         dc.setSchedulingInterval(SCHEDULING_INTERVAL);
         // Creates a broker that is a software acting on behalf of a cloud customer to manage his/her VMs
         DatacenterBroker broker = new DatacenterBrokerBestFit(simulation);
         broker.setVmDestructionDelay(1);
 
-        var vmTypes = readVmTypes(vmTypesPath);
+        vmTypes = readVmTypes(vmTypesPath);
         var vmInstances = readVmInstances(vmInstancesPath);
 
         List<Vm> vmList = new ArrayList<>();
