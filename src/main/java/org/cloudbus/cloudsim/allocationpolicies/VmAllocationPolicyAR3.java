@@ -72,7 +72,7 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
          * we get active hosts with minimum number of free PEs. */
         var hosts = getHostList();
         double max_delta = Double.NEGATIVE_INFINITY;
-        Optional<Host> aim_host = Optional.ofNullable(null);
+        Optional<Host> aim_host = Optional.empty();
         for(var host : hosts){
             // find suitable host
             if(host.isSuitableForVm(vm)){
@@ -104,6 +104,9 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                         }
                     }
                 }
+                if(max_delta_dpu == Double.NEGATIVE_INFINITY){
+                    continue;
+                }
                 double cpu_before = 1 - host.getBusyPesPercent();
                 double mem_before = 1 - host.getRamUtilization() / host.getRamProvisioner().getCapacity();
                 double cpu_after = cpu_before - (double)(vm.getExpectedFreePesNumber())/host.getNumberOfPes();
@@ -125,7 +128,8 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                     value_after = pointRecordNode.get(point2);
                 }
 
-                var delta_value = value_after - value_before;
+                // var delta_value = value_after - value_before;
+                var delta_value = value_after - value_before + max_delta_dpu;
                 if(delta_value > max_delta) {
                     aim_host = Optional.of(host);
                     max_delta = delta_value;

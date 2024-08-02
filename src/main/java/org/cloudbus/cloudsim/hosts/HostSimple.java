@@ -546,7 +546,7 @@ public class HostSimple implements Host {
 
         var suit = bwProvisioner.get(vm.getNicId()).isSuitableForVm(vm, vm.getBw());
         if(!suit){
-            long min = bwProvisioner.get(vm.getNicId()).getCapacity();
+            long min = Long.MAX_VALUE;
             for(int i = 0; i < bwProvisioner.size(); i++) {
                 // System.out.printf("check nic %d\n", i);
                 var suit_temple = bwProvisioner.get(i).isSuitableForVm(vm, vm.getBw());

@@ -14,6 +14,7 @@ import org.cloudbus.cloudsim.core.events.CloudSimEvent;
 import org.cloudbus.cloudsim.core.events.SimEvent;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.datacenters.TimeZoned;
+import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.schedulers.cloudlet.CloudletScheduler;
 import org.cloudbus.cloudsim.util.InvalidEventDataTypeException;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModel;
@@ -33,6 +34,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
+import static org.cloudbus.cloudsim.brokers.DatacenterBroker.LOGGER;
 
 /**
  * An abstract class for implementing {@link DatacenterBroker}s.
@@ -688,7 +690,30 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             "{}: {}: {} of the requested {} VMs couldn't be created because suitable Hosts weren't found in any available Datacenter."
             + (vmExecList.isEmpty() && !isRetryFailedVms() ? " Shutting broker down..." : "");
         LOGGER.error(msg, getSimulation().clockStr(), getName(), vmWaitingList.size(), getVmsNumber());
-
+        double accumulatedCPUUtilization = 0;
+        double accumulatedBWUtilization = 0;
+        int size = 0;
+        for (Datacenter data: getDatacenterList()) {
+            for(Host host: data.getHostList()){
+                size ++;
+                final double utilizationPercentMean = host.getBusyPesPercent();
+                final double nicUilization = host.getBwUtilization();
+                
+                // The total Host's CPU utilization for the time specified by the map key
+                // final double utilizationPercentMean = cpuStats.getMean();
+                accumulatedCPUUtilization += utilizationPercentMean * 100;
+                accumulatedBWUtilization += nicUilization / 8 / (100 * 1024.0) * 100.0 ;
+                // System.out.printf("%.1f%% ", 
+                //     nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 );
+            }    
+        }
+        // System.out.println();
+        System.out.printf("Util when failed: %.1f%%, ", 
+            accumulatedCPUUtilization / size);
+        // System.out.println();
+        System.out.printf("%.1f%%", 
+            accumulatedBWUtilization / size);
+        System.out.println();
         /* If it gets here, it means that all datacenters were already queried and not all VMs could be created. */
         if (!vmWaitingList.isEmpty()) {
             processVmCreationFailure();

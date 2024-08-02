@@ -69,12 +69,11 @@ public class VmAllocationPolicyAR2 extends VmAllocationPolicyAbstract {
          * we get active hosts with minimum number of free PEs. */
         var hosts = getHostList();
         double max_delta = Double.NEGATIVE_INFINITY;
-        Optional<Host> aim_host = Optional.ofNullable(null);
+        Optional<Host> aim_host = Optional.empty();
         for(var host : hosts){
             // find suitable host
             if(host.isSuitableForVm(vm)){
                 // first, find suitable dpu
-                
                 double cpu_before = 1 - host.getBusyPesPercent();
                 double mem_before = 1 - host.getRamUtilization() / host.getRamProvisioner().getCapacity();
                 double cpu_after = cpu_before - (double)(vm.getExpectedFreePesNumber())/host.getNumberOfPes();
@@ -88,14 +87,12 @@ public class VmAllocationPolicyAR2 extends VmAllocationPolicyAbstract {
                 } else {
                     value_before = pointRecord.get(point1);
                 }
-
                 if(!pointRecord.containsKey(point2)){
                     value_after = pointFunction.apply(point2);
                     pointRecord.put(point2, value_after);
                 } else {
                     value_after = pointRecord.get(point2);
                 }
-
                 var delta_value = value_after - value_before;
                 if(delta_value > max_delta) {
                     aim_host = Optional.of(host);

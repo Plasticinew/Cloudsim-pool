@@ -67,8 +67,8 @@ public class AzureVmTraceExample {
     // Just comma (,) symbol
     private static final String COMMA_DELIMITER = ",";
 
-    private static final int HOST_PER_RACK = 32;
-    private static final int DPU_PER_RACK = 16;
+    private static final int HOST_PER_RACK = 8;
+    private static final int DPU_PER_RACK = 4;
 
     private static final double CPU_WEIGHT = 1;
     private static final double MEM_WEIGHT = 1;
@@ -83,7 +83,7 @@ public class AzureVmTraceExample {
     public double pointFunctionAR2(Point2D p){
         double sum_point = 0;
         for(var type: vmTypes.entrySet()){
-            var point = Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) * type.getValue().cpu;
+            var point = (double)Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) * type.getValue().cpu;
             sum_point += point;
         }
         // System.out.printf("find result %f\n", sum_point);
@@ -93,7 +93,7 @@ public class AzureVmTraceExample {
     public double pointFunctionAR3Node(Point2D p){
         double sum_point = 0;
         for(var type: vmTypes.entrySet()){
-            var point = Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) 
+            var point = (double)Math.min((int)(p.getX()/type.getValue().cpu), (int)(p.getY()/type.getValue().memory)) 
                             * (type.getValue().cpu * CPU_WEIGHT + type.getValue().memory * MEM_WEIGHT);
             sum_point += point;
         }
@@ -104,7 +104,7 @@ public class AzureVmTraceExample {
     public double pointFunctionAR3DPU(double p){
         double sum_point = 0;
         for(var type: vmTypes.entrySet()){
-            var point = (int)(p/type.getValue().bw) * type.getValue().bw * DPU_WEIGHT;
+            var point = (double)(int)(p/type.getValue().bw) * type.getValue().bw * DPU_WEIGHT;
             sum_point += point;
         }
         // System.out.printf("find result %f\n", sum_point);
@@ -120,10 +120,10 @@ public class AzureVmTraceExample {
 
         final CloudSim simulation = new CloudSim();
         final var hosts = createHosts(host_count);
-        // var policy = new VmAllocationPolicyAR2();
-        // policy.setPointFunction(point -> this.pointFunctionAR2(point));
-        var policy = new VmAllocationPolicyAR3();
-        policy.setPointFunction(point -> this.pointFunctionAR3Node(point), dpu -> this.pointFunctionAR3DPU(dpu));
+        var policy = new VmAllocationPolicyAR2();
+        policy.setPointFunction(point -> this.pointFunctionAR2(point));
+        // var policy = new VmAllocationPolicyAR3();
+        // policy.setPointFunction(point -> this.pointFunctionAR3Node(point), dpu -> this.pointFunctionAR3DPU(dpu));
         final Datacenter dc = new DatacenterSimple(simulation, hosts, policy);
         // final Datacenter dc = new DatacenterSimple(simulation, hosts, new VmAllocationPolicyBestFit());
         dc.setSchedulingInterval(SCHEDULING_INTERVAL);
@@ -176,7 +176,7 @@ public class AzureVmTraceExample {
 
         broker.submitVmList(vmList);
         broker.submitCloudletList(cloudletList);
-        // simulation.addOnClockTickListener(Null -> printHostCpuUtilizationAndPowerConsumption(hosts));
+        simulation.addOnClockTickListener(Null -> printHostCpuUtilizationAndPowerConsumption(hosts));
         simulation.start();
 
         var timeFinish = System.currentTimeMillis();
@@ -260,23 +260,28 @@ public class AzureVmTraceExample {
     private void printHostCpuUtilizationAndPowerConsumption(final List<Host> hosts) {
         double accumulatedCPUUtilization = 0;
         double accumulatedBWUtilization = 0;
+        double accumulatedRAMUtilization = 0;
         for (Host host: hosts) {
-            final HostResourceStats cpuStats = host.getCpuUtilizationStats();
+            final double utilizationPercentMean = host.getBusyPesPercent();
             final double nicUilization = host.getBwUtilization();
+            final double ramUilization = host.getRamUtilization();
             
             // The total Host's CPU utilization for the time specified by the map key
-            final double utilizationPercentMean = cpuStats.getMean();
+            // final double utilizationPercentMean = cpuStats.getMean();
             accumulatedCPUUtilization += utilizationPercentMean * 100;
             accumulatedBWUtilization += nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 ;
-            System.out.printf("%.1f%% ", 
-                nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 );    
+            accumulatedRAMUtilization += ramUilization / (HOST_MEMORY*1024.0) * 100.0 ;
+            // System.out.printf("%.1f%% ", 
+            //     nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 );    
         }
-        System.out.println();
-        System.out.printf("Mean host CPU utilization is %.1f%%", 
+        // System.out.println();
+        System.out.printf("%.1f%%, ", 
             accumulatedCPUUtilization / hosts.size());
-        System.out.println();
-        System.out.printf("Mean host BW utilization is %.1f%%", 
+        // System.out.println();
+        System.out.printf("%.1f%%, ", 
             accumulatedBWUtilization / hosts.size());
+        System.out.printf("%.1f%%", 
+            accumulatedRAMUtilization / hosts.size());
         System.out.println();
     }
 
@@ -292,9 +297,9 @@ public class AzureVmTraceExample {
         public AzureVmType(String[] values) {
             this.id = values[0];
             this.vmTypeId = values[1];
-            this.cpu = Double.parseDouble(values[2]);
-            this.memory = Double.parseDouble(values[3]);
-            this.bw = Double.parseDouble(values[4]);
+            this.cpu = Math.min(Double.parseDouble(values[2]), 1);
+            this.memory = Math.min(Double.parseDouble(values[3]), 1);
+            this.bw = Math.min(Double.parseDouble(values[4]), 1);
         }
     }
 
@@ -327,7 +332,13 @@ public class AzureVmTraceExample {
                 }
                 String[] values = line.split(COMMA_DELIMITER);
                 AzureVmType type = new AzureVmType(values);
-                records.put(type.vmTypeId, type);
+                // if(records.containsKey(type.vmTypeId)) {
+                //     if(Double.parseDouble(values[4]) < records.get(type.vmTypeId).bw && Double.parseDouble(values[2]) < records.get(type.vmTypeId).cpu ){
+                //         records.put(type.vmTypeId, type);
+                //     }
+                // } else {
+                    records.put(type.vmTypeId, type);
+                // }
             }
         }
         return records;
@@ -344,8 +355,12 @@ public class AzureVmTraceExample {
                 }
                 line += ", none";
                 String[] values = line.split(COMMA_DELIMITER);
-                AzureVmInstance instance = new AzureVmInstance(values);
-                records.add(instance);
+                var id = Integer.parseInt(values[0]) * 10;
+                // for(int i = 0; i < 10; i++) {
+                    values[0] = Integer.toString(+id);
+                    AzureVmInstance instance = new AzureVmInstance(values);
+                    records.add(instance);
+                // }
             }
         }
         return records;
