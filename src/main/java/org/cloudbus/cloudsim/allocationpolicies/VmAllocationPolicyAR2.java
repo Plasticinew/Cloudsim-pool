@@ -70,14 +70,19 @@ public class VmAllocationPolicyAR2 extends VmAllocationPolicyAbstract {
         var hosts = getHostList();
         double max_delta = Double.NEGATIVE_INFINITY;
         Optional<Host> aim_host = Optional.empty();
+        var capacity = hosts.get(0).getTotalMipsCapacity();
         for(var host : hosts){
             // find suitable host
             if(host.isSuitableForVm(vm)){
                 // first, find suitable dpu
-                double cpu_before = 1 - host.getBusyPesPercent();
-                double mem_before = 1 - host.getRamUtilization() / host.getRamProvisioner().getCapacity();
-                double cpu_after = cpu_before - (double)(vm.getExpectedFreePesNumber())/host.getNumberOfPes();
+                double cpu_before = (double)host.getTotalAvailableMips()/capacity;
+                double mem_before = (double)host.getRamProvisioner().getPmResource().getAvailableResource()/host.getRamProvisioner().getPmResource().getCapacity();
+                double cpu_after = cpu_before - (double)(vm.getTotalMipsCapacity())/capacity;
+                // double allocated = (double)(host.getRamProvisioner().getAllocatedResourceForVm(vm)) / host.getRamProvisioner().getCapacity();
                 double mem_after = mem_before - (double)(vm.getRam().getCapacity()) / host.getRamProvisioner().getCapacity();
+                if(mem_after < 0) {
+                    System.out.printf("mem error, %f, %f\n", mem_before, mem_after);
+                }
                 var point1 = new Point2D.Double(cpu_before, mem_before);
                 var point2 = new Point2D.Double(cpu_after, mem_after);
                 double value_before, value_after;

@@ -2,6 +2,9 @@ target/
 output/
 install.sh
 
+result_*
+new1/
+
 #Ignore IntelliJ IDEA project files
 .idea/
 *.uml

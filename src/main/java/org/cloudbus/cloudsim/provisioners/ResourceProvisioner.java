@@ -8,11 +8,16 @@
 
 package org.cloudbus.cloudsim.provisioners;
 
-import org.cloudbus.cloudsim.hosts.Host;
-import org.cloudbus.cloudsim.resources.*;
-import org.cloudbus.cloudsim.vms.Vm;
-
+import java.util.List;
 import java.util.function.Function;
+
+import org.cloudbus.cloudsim.hosts.Host;
+import org.cloudbus.cloudsim.resources.Bandwidth;
+import org.cloudbus.cloudsim.resources.Pe;
+import org.cloudbus.cloudsim.resources.Ram;
+import org.cloudbus.cloudsim.resources.Resource;
+import org.cloudbus.cloudsim.resources.ResourceManageable;
+import org.cloudbus.cloudsim.vms.Vm;
 
 /**
  * An interface that represents the provisioning policy used by a {@link Host}
@@ -41,6 +46,11 @@ public interface ResourceProvisioner {
      * An attribute that implements the Null Object Design Pattern for
      * ResourceProvisioner objects.
      */
+
+    public void setRelatedHost(List<Host> relatedHosts);
+
+    public List<Host> getRelatedHost();
+
     ResourceProvisioner NULL = new ResourceProvisionerNull();
 
     /**

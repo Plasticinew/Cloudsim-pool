@@ -7,14 +7,13 @@
  */
 package org.cloudbus.cloudsim.core;
 
+import static java.util.Objects.requireNonNull;
+import java.util.function.Predicate;
+
 import org.cloudbus.cloudsim.core.events.CloudSimEvent;
 import org.cloudbus.cloudsim.core.events.SimEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.function.Predicate;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Represents a simulation entity. An entity handles events and can
@@ -340,16 +339,14 @@ public abstract class CloudSimEntity implements SimEntity, Cloneable {
 
     public void run(final double until) {
         SimEvent evt = buffer == null ? getNextEvent(e -> e.getTime() <= until) : buffer;
-
         while (evt != SimEvent.NULL) {
             processEvent(evt);
             if (state != State.RUNNABLE) {
                 break;
             }
-
             evt = getNextEvent(e -> e.getTime() <= until);
-        }
 
+        }
         buffer = null;
     }
 

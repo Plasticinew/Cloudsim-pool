@@ -7,12 +7,16 @@
  */
 package org.cloudbus.cloudsim.core;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.cloudbus.cloudsim.core.events.SimEvent;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * A Cloud Information Service (CIS) is an entity that provides cloud resource
@@ -64,11 +68,19 @@ public class CloudInformationService extends CloudSimEntity {
     @Override
     public void processEvent(final SimEvent evt) {
         switch (evt.getTag()) {
-            case REGISTER_REGIONAL_CIS -> cisList.add((CloudInformationService) evt.getData());
-            case REQUEST_REGIONAL_CIS -> super.send(evt.getSource(), 0, evt.getTag(), cisList);
-            case DC_REGISTRATION_REQUEST -> datacenterList.add((Datacenter) evt.getData());
+            case REGISTER_REGIONAL_CIS -> {
+                cisList.add((CloudInformationService) evt.getData());
+            }
+            case REQUEST_REGIONAL_CIS -> {
+                super.send(evt.getSource(), 0, evt.getTag(), cisList);
+            }
+            case DC_REGISTRATION_REQUEST -> {
+                datacenterList.add((Datacenter) evt.getData());
+            }
             // A Broker is requesting a list of all datacenters.
-            case DC_LIST_REQUEST -> super.send(evt.getSource(), 0, evt.getTag(), datacenterList);
+            case DC_LIST_REQUEST -> {
+                super.send(evt.getSource(), 0, evt.getTag(), datacenterList);
+            }
         }
     }
 

@@ -1,10 +1,13 @@
 package org.cloudbus.cloudsim.provisioners;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.resources.Resource;
 import org.cloudbus.cloudsim.resources.ResourceManageable;
 import org.cloudbus.cloudsim.vms.Vm;
-
-import java.util.function.Function;
 
 /**
  * A class that implements the Null Object Design Pattern for
@@ -22,6 +25,13 @@ class ResourceProvisionerNull implements ResourceProvisioner {
     }
     @Override public long getTotalAllocatedResource() {
         return 0;
+    }
+    @Override public void setRelatedHost(List<Host> relatedHosts) {
+    }
+
+    @Override public List<Host> getRelatedHost() {
+        List<Host> zero = new ArrayList<>();
+        return zero;
     }
     @Override public long deallocateResourceForVm(Vm vm) {
         return 0;

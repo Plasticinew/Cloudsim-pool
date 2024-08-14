@@ -23,11 +23,11 @@
  */
 package org.cloudbus.cloudsim.brokers;
 
+import java.util.Comparator;
+
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.vms.Vm;
-
-import java.util.Comparator;
 
 /**
  * A implementation of {@link DatacenterBroker} that uses a Best Fit
@@ -63,7 +63,7 @@ public class DatacenterBrokerBestFit extends DatacenterBrokerSimple {
         if (cloudlet.isBoundToVm()) {
             return cloudlet.getVm();
         }
-
+        // System.out.printf("wrong!\n");
         final Vm mappedVm = getVmCreatedList()
             .stream()
             .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())

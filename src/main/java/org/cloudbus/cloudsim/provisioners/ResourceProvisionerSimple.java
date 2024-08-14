@@ -8,14 +8,14 @@
 
 package org.cloudbus.cloudsim.provisioners;
 
+import java.util.Objects;
+import java.util.function.Function;
+
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.resources.Resource;
 import org.cloudbus.cloudsim.resources.ResourceManageable;
 import org.cloudbus.cloudsim.vms.Vm;
-
-import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * A best-effort {@link ResourceProvisioner} policy used by a {@link Host} to provide a resource to VMs:
@@ -36,6 +36,7 @@ public class ResourceProvisionerSimple extends ResourceProvisionerAbstract {
      *
      * @see ResourceProvisioner#setResources(ResourceManageable, Function)
      */
+
     public ResourceProvisionerSimple() {
         super(ResourceManageable.NULL, vm -> ResourceManageable.NULL);
     }

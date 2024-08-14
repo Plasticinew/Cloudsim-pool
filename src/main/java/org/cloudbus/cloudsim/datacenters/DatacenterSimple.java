@@ -6,6 +6,17 @@
  */
 package org.cloudbus.cloudsim.datacenters;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import static java.util.Objects.requireNonNull;
+import java.util.Optional;
+import java.util.TreeMap;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
+import java.util.stream.Stream;
+
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicy;
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicySimple;
 import org.cloudbus.cloudsim.allocationpolicies.migration.VmAllocationPolicyMigration;
@@ -16,6 +27,7 @@ import org.cloudbus.cloudsim.core.CustomerEntityAbstract;
 import org.cloudbus.cloudsim.core.Simulation;
 import org.cloudbus.cloudsim.core.events.PredicateType;
 import org.cloudbus.cloudsim.core.events.SimEvent;
+import static org.cloudbus.cloudsim.datacenters.Datacenter.LOGGER;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.hosts.HostSimple;
 import org.cloudbus.cloudsim.hosts.HostSuitability;
@@ -24,6 +36,7 @@ import org.cloudbus.cloudsim.power.models.PowerModelDatacenter;
 import org.cloudbus.cloudsim.power.models.PowerModelDatacenterSimple;
 import org.cloudbus.cloudsim.resources.DatacenterStorage;
 import org.cloudbus.cloudsim.resources.SanStorage;
+import static org.cloudbus.cloudsim.util.BytesConversion.bitesToBytes;
 import org.cloudbus.cloudsim.util.InvalidEventDataTypeException;
 import org.cloudbus.cloudsim.util.MathUtil;
 import org.cloudbus.cloudsim.vms.Vm;
@@ -33,14 +46,6 @@ import org.cloudsimplus.faultinjection.HostFaultInjection;
 import org.cloudsimplus.listeners.DatacenterVmMigrationEventInfo;
 import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.listeners.HostEventInfo;
-
-import java.util.*;
-import java.util.stream.Stream;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toList;
-import static org.cloudbus.cloudsim.util.BytesConversion.bitesToBytes;
 
 /**
  * Implements the basic features of a Virtualized Cloud Datacenter. It deals
@@ -228,7 +233,7 @@ public class DatacenterSimple extends CloudSimEntity implements Datacenter {
     }
 
     @Override
-    public void processEvent(final SimEvent evt) {
+    public void processEvent(final SimEvent evt) {             
         if (processCloudletEvents(evt) || processVmEvents(evt) || processNetworkEvents(evt) || processHostEvents(evt)) {
             return;
         }

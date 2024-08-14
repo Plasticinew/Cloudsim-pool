@@ -997,13 +997,19 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          * created Cloudlets into a separate list.
          * Cloudlets in such new list were removed just after the loop,
          * degrading performance in large scale simulations. */
+        // long timeStart = System.currentTimeMillis();     
+        // var timeFinish = System.currentTimeMillis();
+        // var timeElapsed = timeFinish - timeStart;
+        // System.out.println("Elapsed time is " + timeElapsed / 1000.0 + " seconds");
         int createdCloudlets = 0;
         for (final var iterator = cloudletWaitingList.iterator(); iterator.hasNext(); ) {
             final CloudletSimple cloudlet = (CloudletSimple)iterator.next();
             if (!cloudlet.getLastTriedDatacenter().equals(Datacenter.NULL)) {
                 continue;
             }
-
+            if(cloudlet.getExecStartTime()>getSimulation().clock()){
+                break;
+            }
             //selects a VM for the given Cloudlet
             lastSelectedVm = vmMapper.apply(cloudlet);
             if (!lastSelectedVm.isCreated()) {

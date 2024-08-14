@@ -7,6 +7,15 @@
  */
 package org.cloudbus.cloudsim.allocationpolicies;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import static java.util.Objects.requireNonNull;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import static java.util.stream.Collectors.toList;
+
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.hosts.HostSuitability;
@@ -17,12 +26,6 @@ import org.cloudbus.cloudsim.util.Conversion;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.vms.VmGroup;
 import org.cloudsimplus.autoscaling.VerticalVmScaling;
-
-import java.util.*;
-import java.util.function.BiFunction;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 /**
  * An abstract class that represents the policy
@@ -319,7 +322,14 @@ public abstract class VmAllocationPolicyAbstract implements VmAllocationPolicy {
 
     @Override
     public final Optional<Host> findHostForVm(final Vm vm) {
+        // long timeStart = System.currentTimeMillis();
         final var optionalHost = findHostForVmFunction == null ? defaultFindHostForVm(vm) : findHostForVmFunction.apply(this, vm);
+        if(optionalHost.isEmpty()){
+            System.out.printf("Failed!%d, %d, %d, %d\n", vm.getId(), vm.getExpectedFreePesNumber(), vm.getBw().getCapacity(), vm.getRam().getCapacity());
+        }
+        // var timeFinish = System.currentTimeMillis();
+        // var timeElapsed = timeFinish - timeStart;
+        // System.out.println("Elapsed time is " + timeElapsed / 1000.0 + " seconds");
         //If the selected Host is not active, activate it (if it's already active, setActive has no effect)
         return optionalHost.map(host -> host.setActive(true));
     }

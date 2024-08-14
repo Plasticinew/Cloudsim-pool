@@ -23,8 +23,10 @@
  */
 package org.cloudbus.cloudsim.hosts;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import org.cloudbus.cloudsim.core.AbstractMachine;
 import org.cloudbus.cloudsim.core.Simulation;
@@ -42,10 +44,6 @@ import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.listeners.HostEventInfo;
 import org.cloudsimplus.listeners.HostUpdatesVmsProcessingEventInfo;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 /**
  * A class that implements the Null Object Design Pattern for {@link Host}
  * class.
@@ -54,6 +52,12 @@ import java.util.Set;
  * @see Host#NULL
  */
 final class HostNull implements Host {
+    @Override public void setRelatedHost(List<Host> relatedHosts) {
+    }
+    @Override public List<Host> getRelatedHost() {
+        List<Host> zero = new ArrayList<>();
+        return zero;
+    }
     @Override public int compareTo(Host host) { return 0; }
     @Override public boolean addMigratingInVm(Vm vm) {
         return false;

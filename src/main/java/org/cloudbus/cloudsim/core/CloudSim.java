@@ -7,23 +7,33 @@
  */
 package org.cloudbus.cloudsim.core;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import static java.util.Objects.requireNonNull;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
-import org.cloudbus.cloudsim.core.events.*;
+import org.cloudbus.cloudsim.core.events.CloudSimEvent;
+import org.cloudbus.cloudsim.core.events.DeferredQueue;
+import org.cloudbus.cloudsim.core.events.EventQueue;
+import org.cloudbus.cloudsim.core.events.FutureQueue;
+import org.cloudbus.cloudsim.core.events.SimEvent;
 import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.network.topologies.NetworkTopology;
 import org.cloudbus.cloudsim.util.TimeUtil;
+import static org.cloudbus.cloudsim.util.TimeUtil.secondsToStr;
 import org.cloudbus.cloudsim.util.Util;
 import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.listeners.EventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-
-import static java.util.Objects.requireNonNull;
-import static org.cloudbus.cloudsim.util.TimeUtil.secondsToStr;
 
 /**
  * The main class of the simulation API, that manages Cloud Computing simulations,
@@ -288,7 +298,6 @@ public class CloudSim implements Simulation {
         if (!runClockTickAndProcessFutureEvents(until) && !isToWaitClockToReachTerminationTime()) {
             return false;
         }
-
         notifyOnSimulationStartListeners(); //it's ensured to run just once.
         if (logSimulationAborted()) {
             return false;
@@ -494,7 +503,6 @@ public class CloudSim implements Simulation {
             processFutureEventsHappeningAtSameTimeOfTheFirstOne(first);
             return true;
         }
-
         return false;
     }
 
@@ -675,16 +683,19 @@ public class CloudSim implements Simulation {
      * @param evt the event to be processed
      */
     private void processEvent(final SimEvent evt) {
+        // long timeStart = System.currentTimeMillis();
         if (evt.getTime() < clock) {
             final var msg = "Past event detected. Event time: %.2f Simulation clock: %.2f";
             throw new IllegalArgumentException(String.format(msg, evt.getTime(), clock));
         }
-
         setClock(evt.getTime());
         processEventByType(evt);
         for (final var listener : onEventProcessingListeners) {
             listener.update(evt);
         }
+        // var timeFinish = System.currentTimeMillis();
+        // var timeElapsed = timeFinish - timeStart;
+        // System.out.println("Elapsed time is " + timeElapsed / 1000.0 + " seconds");
     }
 
     /**

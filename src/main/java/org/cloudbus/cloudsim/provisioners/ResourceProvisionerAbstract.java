@@ -8,12 +8,13 @@
 
 package org.cloudbus.cloudsim.provisioners;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.resources.ResourceManageable;
 import org.cloudbus.cloudsim.vms.Vm;
-
-import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * An abstract class that implements the basic features of a provisioning policy used by a {@link Host}
@@ -29,6 +30,17 @@ public abstract class ResourceProvisionerAbstract implements ResourceProvisioner
     /**
      * @see #getPmResource()
      */
+
+    List<Host> relatedHost;
+
+    @Override public void setRelatedHost(List<Host> relatedHosts) {
+        this.relatedHost = relatedHosts;
+    }
+
+    @Override public List<Host> getRelatedHost() {
+        return relatedHost;
+    }
+    
     private ResourceManageable pmResource;
 
     /** @see #getVmResourceFunction() */

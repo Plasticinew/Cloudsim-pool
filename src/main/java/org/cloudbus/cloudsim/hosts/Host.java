@@ -44,6 +44,11 @@ import org.slf4j.LoggerFactory;
  * @since CloudSim Plus 1.0
  */
 public interface Host extends Machine, Comparable<Host>, PowerAware<PowerModelHost>, ResourceStatsComputer<HostResourceStats> {
+    
+    public void setRelatedHost(List<Host> relatedHosts);
+
+    public List<Host> getRelatedHost();
+    
     Logger LOGGER = LoggerFactory.getLogger(Host.class.getSimpleName());
 
     /**

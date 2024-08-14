@@ -83,6 +83,16 @@ public class HostSimple implements Host {
 
     private boolean active;
 
+    List<Host> relatedHost;
+
+    @Override public void setRelatedHost(List<Host> relatedHosts) {
+        this.relatedHost = relatedHosts;
+    }
+
+    @Override public List<Host> getRelatedHost() {
+        return relatedHost;
+    }
+
     /**
      * Indicates if a power on/off operation is in progress.
      */
