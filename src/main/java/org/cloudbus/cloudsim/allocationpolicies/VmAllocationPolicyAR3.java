@@ -81,6 +81,8 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
          * we get active hosts with minimum number of free PEs. */
         var hosts = getHostList();
         double min_delta = Double.POSITIVE_INFINITY;
+        double min_delta_dpu = Double.POSITIVE_INFINITY;
+        double min_delta_node = Double.POSITIVE_INFINITY;
         Optional<Host> aim_host = Optional.empty();
         var capacity = hosts.get(0).getTotalMipsCapacity();
         for(var host : hosts){
@@ -130,7 +132,20 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                         vm.setNicId(i);
                         aim_host = Optional.of(host);
                         min_delta = delta_value;
-                    }                   
+                        min_delta_node = pointFunctionNode.apply(oldpoint, band_before) - pointFunctionNode.apply(point2, band_after);
+                        min_delta_dpu = pointFunctionDPU.apply(oldpoint, band_before) - pointFunctionDPU.apply(point2, band_after);
+                    } else if(delta_value == min_delta) {
+                        var new_min_delta_node = pointFunctionNode.apply(oldpoint, band_before) - pointFunctionNode.apply(point2, band_after);
+                        var new_min_delta_dpu = pointFunctionDPU.apply(oldpoint, band_before) - pointFunctionDPU.apply(point2, band_after);
+                        if((new_min_delta_dpu == min_delta_dpu && new_min_delta_node < min_delta_node) || 
+                            (new_min_delta_node == min_delta_node && new_min_delta_dpu < min_delta_dpu)) {
+                            vm.setNicId(i);
+                            aim_host = Optional.of(host);
+                            min_delta = delta_value;
+                            min_delta_node = new_min_delta_node;
+                            min_delta_dpu = new_min_delta_dpu;
+                        }
+                    }
                     // }
                 }
                 // // first, find suitable dpu
