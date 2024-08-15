@@ -47,11 +47,11 @@ public class AzureVmTraceExample {
     // MIPS performance of PE
     private static final int PE_MIPS = 1000;
     // CPUs per host
-    private static final int HOST_PES = 256;
+    private static final int HOST_PES = 120;
     // Host memory capacity in GB
-    private static final int HOST_MEMORY = 1024;
+    private static final int HOST_MEMORY = 512;
     // Host nic bandwidth in Gbps
-    private static final int HOST_BW = 400;
+    private static final int HOST_BW = 800;
     // Indicates the time (in seconds) the Host takes to start up
     private static final double HOST_START_UP_DELAY = 0;
     // Indicates the time (in seconds) the Host takes to shut down
@@ -77,11 +77,12 @@ public class AzureVmTraceExample {
     List<AzureVmType> vmTypes;
     List<Integer> weights;
     public static void main(String[] args) throws Exception {
-        new AzureVmTraceExample(args[0], args[1], Double.parseDouble(args[2]), Integer.parseInt(args[3]));
+        new AzureVmTraceExample(args[0], args[1], Double.parseDouble(args[2]), Integer.parseInt(args[3]), Integer.parseInt(args[4]));
     }
 
     public double valueFunction(AzureVmType type){
-        return type.cpu * CPU_WEIGHT + type.memory * MEM_WEIGHT + type.bw * DPU_WEIGHT;
+        return (type.cpu * CPU_WEIGHT + type.memory * MEM_WEIGHT + type.bw * DPU_WEIGHT);
+        // return (type.cpu * CPU_WEIGHT + type.memory * MEM_WEIGHT + type.bw * DPU_WEIGHT) * weights.get(type.vmTypeId);
         // return weights.get(type.vmTypeId);
     }
 
@@ -101,7 +102,7 @@ public class AzureVmTraceExample {
         double sum_point = 0;
         for(int i = 0;i < vmTypes.size(); i++){
             if(weights.get(i) > 0){
-                var point = (double)Math.min((int)(p.getX()/vmTypes.get(i).cpu), (int)(p.getY()/vmTypes.get(i).memory)) 
+                var point = (double)Math.min(Math.min((int)(p.getX()/vmTypes.get(i).cpu), (int)(p.getY()/vmTypes.get(i).memory)),1)
                                 * valueFunction(vmTypes.get(i));
                 sum_point += point;
             }
@@ -114,7 +115,7 @@ public class AzureVmTraceExample {
         double sum_point = 0;
         for(int i = 0;i < vmTypes.size(); i++){
             if(weights.get(i) > 0){
-                var point = (double)(int)(dpu/vmTypes.get(i).bw) 
+                var point = (double)(Math.min((int)(dpu/vmTypes.get(i).bw),1)) 
                                 * valueFunction(vmTypes.get(i));
                 sum_point += point;
             }
@@ -135,6 +136,8 @@ public class AzureVmTraceExample {
                 for(var dpu : dpulist){
                     dpu_sum += (int)(dpu/vmTypes.get(i).bw);
                 }
+                dpu_sum = Math.min(dpu_sum, 1);
+                node_sum = Math.min(node_sum, 1);
                 sum_point += (double)Math.min(dpu_sum, node_sum) * 
                     valueFunction(vmTypes.get(i));
                     // (vmTypes.get(i).cpu * CPU_WEIGHT + vmTypes.get(i).memory * MEM_WEIGHT + vmTypes.get(i).bw * DPU_WEIGHT);
@@ -145,7 +148,7 @@ public class AzureVmTraceExample {
     }
 
     private AzureVmTraceExample(String vmTypesPath, String vmInstancesPath,
-                                double simulationTime, int host_count) throws Exception {
+                                double simulationTime, int host_count, int method) throws Exception {
         /*Enables just some level of log messages.
           Make sure to import org.cloudsimplus.util.Log;*/
         Log.setLevel(Level.ERROR);
@@ -154,15 +157,20 @@ public class AzureVmTraceExample {
         final CloudSim simulation = new CloudSim();
         final var hosts = createHosts(host_count);
         System.out.printf("time: %f, host: %d, dpu: %d\n", simulationTime, host_count, DPU_PER_RACK);
-        var policy = new VmAllocationPolicyAR2();
-        policy.setPointFunction(point -> this.pointFunctionAR2(point));
-        System.out.printf("using ar2\n");
-        // var policy = new VmAllocationPolicyAR3();
-        // policy.setPointFunction((point, list) -> this.pointFunctionAR3(point, list));
-        // policy.setPointFunction((point, dpu) -> this.pointFunctionAR3Node(point, dpu), (point, dpu) -> this.pointFunctionAR3DPU(point, dpu));
-        // // System.out.printf("using ar3\n");
-        // System.out.printf("using ar3 weight\n");
-        final Datacenter dc = new DatacenterSimple(simulation, hosts, policy);
+        final Datacenter dc;
+        if (method ==2) {
+            var policy = new VmAllocationPolicyAR2();
+            policy.setPointFunction(point -> this.pointFunctionAR2(point));
+            System.out.printf("using ar2\n");
+            dc = new DatacenterSimple(simulation, hosts, policy);
+        } else {
+            var policy = new VmAllocationPolicyAR3();
+            policy.setPointFunction((point, list) -> this.pointFunctionAR3(point, list));
+            policy.setPointFunction((point, dpu) -> this.pointFunctionAR3Node(point, dpu), (point, dpu) -> this.pointFunctionAR3DPU(point, dpu));
+            // System.out.printf("using ar3\n");
+            System.out.printf("using ar3 weight\n");
+            dc = new DatacenterSimple(simulation, hosts, policy);
+        }
         // final Datacenter dc = new DatacenterSimple(simulation, hosts, new VmAllocationPolicyBestFit());
         dc.setSchedulingInterval(SCHEDULING_INTERVAL);
         // Creates a broker that is a software acting on behalf of a cloud customer to manage his/her VMs
@@ -193,12 +201,12 @@ public class AzureVmTraceExample {
             }
             final var vmId = id++;
             var vmType = vmTypes.get(instance.vmTypeId);
-            final var vmPes = Math.max((int)(vmType.cpu * HOST_PES), 1);
-            final var vmRam = Math.max((int)(vmType.memory * HOST_MEMORY * 1024), 1);
-            final var vmBw = Math.max((int)(vmType.bw * HOST_BW * 1024), 1);
-            // final var vmPes = Math.max((int)(vmType.cpu), 1);
-            // final var vmRam = Math.max((int)(vmType.memory* 1024), 1);
-            // final var vmBw = Math.max((int)(vmType.bw* 1024), 1);
+            // final var vmPes = Math.max((int)(vmType.cpu * HOST_PES), 1);
+            // final var vmRam = Math.max((int)(vmType.memory * HOST_MEMORY * 1024), 1);
+            // final var vmBw = Math.max((int)(vmType.bw * HOST_BW * 1024), 1);
+            final var vmPes = Math.max((int)(vmType.cpu), 1);
+            final var vmRam = Math.max((int)(vmType.memory* 1024), 1);
+            final var vmBw = Math.max((int)(vmType.bw* 1024), 1);
             final var vmSize = 1000;
             final var vm = new VmSimple(vmId, PE_MIPS, vmPes);
             vm.setRam(vmRam).setBw(vmBw).setSize(vmSize).enableUtilizationStats();
@@ -347,12 +355,12 @@ public class AzureVmTraceExample {
         public AzureVmType(String[] values) {
             this.id = values[0];
             this.vmTypeId = Integer.parseInt(values[1]);
-            this.cpu = Math.min(Double.parseDouble(values[2])*0.99, 1);
-            this.memory = Math.min(Double.parseDouble(values[3])*1.1, 1);
-            this.bw = Math.min(Double.parseDouble(values[4])*0.7, 1);
-            // this.cpu = Double.parseDouble(values[2]);
-            // this.memory = Double.parseDouble(values[3]);
-            // this.bw = Double.parseDouble(values[4]);
+            // this.cpu = Math.min(Double.parseDouble(values[2]), 1);
+            // this.memory = Math.min(Double.parseDouble(values[3]), 1);
+            // this.bw = Math.min(Double.parseDouble(values[4]), 1);
+            this.cpu = Double.parseDouble(values[2]);
+            this.memory = Double.parseDouble(values[3]);
+            this.bw = Double.parseDouble(values[4]);
         }
     }
 
@@ -386,18 +394,18 @@ public class AzureVmTraceExample {
                 String[] values = line.split(COMMA_DELIMITER);
                 AzureVmType type = new AzureVmType(values);
                 var typeid = Integer.parseInt(values[1]);
-                if(records.get(typeid) != null) {
-                    var record = records.get(type.vmTypeId);
-                    var max_val = Math.max(Math.max(record.bw, record.cpu), record.memory);
-                    if((Math.min(Double.parseDouble(values[4])*0.7, 1) >= record.bw && max_val == record.bw) || 
-                            // (Math.min(Double.parseDouble(values[2]), 1) >= record.cpu && max_val == record.cpu) || 
-                            (Math.min(Double.parseDouble(values[3])*1.1, 1) >= record.memory && max_val == record.memory) ){
-                        records.set(type.vmTypeId, type);
-                    }
-                } else {
+                // if(records.get(typeid) != null) {
+                //     var record = records.get(type.vmTypeId);
+                //     var max_val = Math.max(Math.max(record.bw, record.cpu), record.memory);
+                //     if((Math.min(Double.parseDouble(values[4]), 1) >= record.bw && max_val == record.bw) || 
+                //             // (Math.min(Double.parseDouble(values[2]), 1) >= record.cpu && max_val == record.cpu) || 
+                //             (Math.min(Double.parseDouble(values[3]), 1) >= record.memory && max_val == record.memory) ){
+                //         records.set(type.vmTypeId, type);
+                //     }
+                // } else {
                     weights.set(type.vmTypeId, 0);
                     records.set(type.vmTypeId, type);
-                }
+                // }
             }
         }
         return records;

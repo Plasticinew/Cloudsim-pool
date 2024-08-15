@@ -320,43 +320,55 @@ public abstract class VmAllocationPolicyAbstract implements VmAllocationPolicy {
         this.findHostForVmFunction = findHostForVmFunction;
     }
 
+    private double totalvalue = 0;
+
     @Override
     public final Optional<Host> findHostForVm(final Vm vm) {
         // long timeStart = System.currentTimeMillis();
         final var optionalHost = findHostForVmFunction == null ? defaultFindHostForVm(vm) : findHostForVmFunction.apply(this, vm);
-            var hosts = getHostList();
-            double accumulatedCPUUtilization = 0;
-            double accumulatedBWUtilization = 0;
-            var capacity = hosts.get(0).getTotalMipsCapacity();
-            double accumulatedRAMUtilization = 0;
-            var HOST_BW = hosts.get(0).getBwProvisioner(0).getCapacity();
-            var HOST_MEMORY = hosts.get(0).getRamProvisioner().getCapacity();
-            var DPU_PER_RACK = hosts.get(0).getBwProvisioner().size();
-            for (Host host: hosts) {
-                final double utilizationPercentMean = host.getTotalAllocatedMips()/capacity;
-                final double nicUilization = host.getBwUtilization();
-                final double ramUilization = host.getRamUtilization();
+        var hosts = getHostList();
+        double accumulatedCPUUtilization = 0;
+        double accumulatedBWUtilization = 0;
+        var capacity = hosts.get(0).getTotalMipsCapacity();
+        double accumulatedRAMUtilization = 0;
+        var HOST_BW = hosts.get(0).getBwProvisioner(0).getCapacity();
+        var HOST_MEMORY = hosts.get(0).getRamProvisioner().getCapacity();
+        var DPU_PER_RACK = hosts.get(0).getBwProvisioner().size();
+
+        if(optionalHost.isEmpty()){
+            System.out.printf("Failed! %d, %d, %d, %d\n", vm.getId(), vm.getExpectedFreePesNumber(), vm.getBw().getCapacity(), vm.getRam().getCapacity());
+        } else {
+            totalvalue += (double)(vm.getTotalMipsCapacity())/(double)hosts.get(0).getTotalMipsCapacity();
+            totalvalue += (double)(vm.getRam().getCapacity()) / hosts.get(0).getRamProvisioner().getPmResource().getCapacity();
+            totalvalue += (double)(vm.getBw().getCapacity()) / hosts.get(0).getBwProvisioner(0).getPmResource().getCapacity();
+        }
+
+        for (Host host: hosts) {
+            final double utilizationPercentMean = host.getTotalAllocatedMips()/capacity;
+            final double nicUilization = host.getBwUtilization();
+            final double ramUilization = host.getRamUtilization();
                 
                 // The total Host's CPU utilization for the time specified by the map key
                 // final double utilizationPercentMean = cpuStats.getMean();
-                accumulatedCPUUtilization += utilizationPercentMean * 100;
-                accumulatedBWUtilization += nicUilization / DPU_PER_RACK / (HOST_BW) * 100.0 ;
-                accumulatedRAMUtilization += ramUilization / (HOST_MEMORY) * 100.0 ;
+            accumulatedCPUUtilization += utilizationPercentMean * 100;
+            accumulatedBWUtilization += nicUilization / DPU_PER_RACK / (HOST_BW) * 100.0 ;
+            accumulatedRAMUtilization += ramUilization / (HOST_MEMORY) * 100.0 ;
                 // System.out.printf("%.1f%% ", 
                 //     nicUilization / DPU_PER_RACK / (HOST_BW*1024.0) * 100.0 );    
-            }
-            // System.out.println();
-            System.out.printf("%.1f%% ", 
-                accumulatedCPUUtilization / hosts.size());
-            // System.out.println();
-            System.out.printf("%.1f%% ", 
-                accumulatedBWUtilization / hosts.size());
-            System.out.printf("%.1f%%", 
-                accumulatedRAMUtilization / hosts.size());
-            System.out.println();
-        if(optionalHost.isEmpty()){
-            System.out.printf("Failed! %d, %d, %d, %d\n", vm.getId(), vm.getExpectedFreePesNumber(), vm.getBw().getCapacity(), vm.getRam().getCapacity());
         }
+            // System.out.println();
+        System.out.printf("%.1f%% ", 
+            accumulatedCPUUtilization / hosts.size());
+        // System.out.println();
+        System.out.printf("%.1f%% ", 
+            accumulatedBWUtilization / hosts.size());
+        System.out.printf("%.1f%% ", 
+            accumulatedRAMUtilization / hosts.size());
+        System.out.printf("%.1f%%", 
+            totalvalue);
+        
+        System.out.println();
+
         // var timeFinish = System.currentTimeMillis();
         // var timeElapsed = timeFinish - timeStart;
         // System.out.println("Elapsed time is " + timeElapsed / 1000.0 + " seconds");

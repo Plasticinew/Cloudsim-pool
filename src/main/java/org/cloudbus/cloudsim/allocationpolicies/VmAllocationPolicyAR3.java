@@ -80,6 +80,7 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
         /* Since it's being used the min operation, the active comparator must be reversed so that
          * we get active hosts with minimum number of free PEs. */
         var hosts = getHostList();
+        int final_dpu = 0;
         double min_delta = Double.POSITIVE_INFINITY;
         double min_delta_dpu = Double.POSITIVE_INFINITY;
         double min_delta_node = Double.POSITIVE_INFINITY;
@@ -122,6 +123,7 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                     // if(host.getBwProvisioner(i).getAvailableResource() >= vm.getBw().getCapacity()) {
                     var band_before = dpulist.get(i);
                     double band_after = band_before - (double)(vm.getBw().getCapacity())/host.getBwProvisioner(i).getCapacity();
+                    // System.out.printf("%d, %f, %f\n", i, band_before, band_after);
                     if(band_after < 0){
                         continue;
                     }
@@ -129,7 +131,7 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                     var delta_value = init_val - pointFunction.apply(point, dpulist);
                     dpulist.set(i, band_before);   
                     if(delta_value < min_delta) {
-                        vm.setNicId(i);
+                        final_dpu = i;
                         aim_host = Optional.of(host);
                         min_delta = delta_value;
                         min_delta_node = pointFunctionNode.apply(oldpoint, band_before) - pointFunctionNode.apply(point2, band_after);
@@ -139,7 +141,7 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                         var new_min_delta_dpu = pointFunctionDPU.apply(oldpoint, band_before) - pointFunctionDPU.apply(point2, band_after);
                         if((new_min_delta_dpu == min_delta_dpu && new_min_delta_node < min_delta_node) || 
                             (new_min_delta_node == min_delta_node && new_min_delta_dpu < min_delta_dpu)) {
-                            vm.setNicId(i);
+                            final_dpu = i;
                             aim_host = Optional.of(host);
                             min_delta = delta_value;
                             min_delta_node = new_min_delta_node;
@@ -218,9 +220,11 @@ public class VmAllocationPolicyAR3 extends VmAllocationPolicyAbstract {
                     System.out.printf("error\n");
                     // continue;
                 }
-            }
-        }
 
+            }
+
+        }
+        vm.setNicId(final_dpu);
         return aim_host;
     }
 

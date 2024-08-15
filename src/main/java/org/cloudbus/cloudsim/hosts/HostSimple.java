@@ -556,15 +556,18 @@ public class HostSimple implements Host {
 
         var suit = bwProvisioner.get(vm.getNicId()).isSuitableForVm(vm, vm.getBw());
         if(!suit){
-            long min = Long.MAX_VALUE;
+            // long min = Long.MAX_VALUE;
             for(int i = 0; i < bwProvisioner.size(); i++) {
                 // System.out.printf("check nic %d\n", i);
                 var suit_temple = bwProvisioner.get(i).isSuitableForVm(vm, vm.getBw());
                 if(suit_temple) {
-                    if(min >= bwProvisioner.get(i).getAvailableResource()){
-                        vm.setNicId(i);
-                        suit = true;
-                    }
+
+                    // if(min >= bwProvisioner.get(i).getAvailableResource()){
+                    vm.setNicId(i);
+                    suit = true;
+                    break;
+                    //     suit = true;
+                    // }
                 }
             }
         }
